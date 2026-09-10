@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SparsePoint | ML Practice Platform</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&family=Space+Grotesk:wght@300;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-deep: #0b0c10;
+            --bg-card: rgba(255, 255, 255, 0.04);
+            --accent-cyan: #00e5ff;
+            --accent-red: #ff2a6d;
+            --accent-blue: #05d9e8;
+            --text-main: #e0e0e0;
+            --text-bright: #ffffff;
+            --text-muted: #a0a0a0;
+            --noise-opacity: 0.07;
+            
+            --font-display: 'Space Grotesk', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg-deep);
+            color: var(--text-main);
+            font-family: var(--font-display);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+            opacity: var(--noise-opacity);
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        #gravityGrid {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        /* === FIXED PANEL === */
+        .fixed-panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 70px;
+            padding: 0 4vw;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 1000;
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .panel-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+
+        .logo-svg {
+            height: 32px;
+            width: auto;
+            filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.2));
+        }
+
+        .logo-path {
+            fill: none;
+            stroke: rgba(255, 255, 255, 0.7);
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .dot-red {
+            fill: var(--accent-red);
+            filter: drop-shadow(0 0 6px var(--accent-red));
+        }
+
+        .dot-blue {
+            fill: var(--accent-blue);
+            filter: drop-shadow(0 0 6px var(--accent-blue));
+        }
+
+        .site-name {
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            color: var(--text-bright);
+            text-transform: uppercase;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        /* === BUTTONS === */
+        .btn {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            text-decoration: none;
+            padding: 8px 16px;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-radius: 2px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-login {
+            color: var(--text-main);
+        }
+
+        .btn-login:hover {
+            color: var(--text-bright);
+        }
+
+        .btn-register {
+            border: 1px solid var(--accent-cyan);
+            color: var(--accent-cyan);
+            background: rgba(0, 229, 255, 0.06);
+        }
+
+        .btn-register:hover {
+            background: var(--accent-cyan);
+            color: var(--bg-deep);
+            box-shadow: 0 0 15px rgba(0, 229, 255, 0.4);
+        }
+
+        .ripple-wave {
+            position: absolute;
+            border-radius: 50%;
+            transform: scale(0);
+            animation: rippleExpand 1.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+            pointer-events: none;
+        }
+
+        @keyframes rippleExpand {
+            0% {
+                transform: scale(0);
+                opacity: 0.6;
+            }
+            100% {
+                transform: scale(4);
+                opacity: 0;
+            }
+        }
+
+        /* === CONTENT === */
+        .content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 120px 5vw 80px;
+            gap: 10vh;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-block {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 4vh;
+        }
+
+        .motto-zone {
+            font-size: clamp(36px, 6vw, 80px);
+            line-height: 1.1;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            color: var(--text-bright);
+            min-height: 2.2em;
+        }
+
+        .typewriter-cursor {
+            display: inline-block;
+            width: 3px;
+            height: 0.8em;
+            background: var(--accent-cyan);
+            margin-left: 4px;
+            vertical-align: middle;
+            animation: cursorBlink 0.8s step-end infinite;
+        }
+
+        @keyframes cursorBlink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        .motto-sub {
+            font-family: var(--font-mono);
+            font-size: clamp(14px, 1.5vw, 18px);
+            color: var(--text-main);
+            max-width: 600px;
+            line-height: 1.6;
+            opacity: 0;
+            animation: fadeInUp 0.6s ease-out forwards;
+            animation-delay: 0.5s;
+        }
+
+        .hero-actions {
+            margin-top: 2vh;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            opacity: 0;
+            animation: fadeInUp 0.6s ease-out forwards;
+            animation-delay: 0.8s;
+        }
+
+        .btn-primary,
+        .btn-secondary {
+            font-family: var(--font-mono);
+            font-size: 14px;
+            padding: 16px 32px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background: var(--accent-cyan);
+            color: var(--bg-deep);
+            border: none;
+            font-weight: 700;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 30px rgba(0, 229, 255, 0.4);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text-main);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            text-decoration: none;
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--text-bright);
+            color: var(--text-bright);
+        }
+
+        /* === STATS === */
+        .stats-block {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2vw;
+            width: 100%;
+        }
+
+        .stat-item {
+            background: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 4vh 2vw;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 1vh;
+            backdrop-filter: blur(5px);
+            position: relative;
+            overflow: hidden;
+            visibility: hidden;
+            opacity: 0;
+            transform: translateY(20px);
+            cursor: default;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+        }
+
+        .stat-item.instant-visible {
+            visibility: visible;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .stat-item:hover {
+            border-color: var(--accent-cyan);
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(0, 229, 255, 0.1);
+        }
+
+        .stat-value {
+            font-family: var(--font-mono);
+            font-size: clamp(28px, 4vw, 48px);
+            color: var(--text-bright);
+            font-weight: 500;
+        }
+
+        .stat-label {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--accent-cyan);
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+        }
+
+        .live-dot {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            background: #0f0;
+            border-radius: 50%;
+            margin-right: 6px;
+            box-shadow: 0 0 8px #0f0;
+            animation: blink 1.5s infinite;
+        }
+
+        /* === GLASS CARD === */
+        .glass-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 6vh 4vw;
+            position: relative;
+            width: 100%;
+            overflow: hidden;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4vw;
+            align-items: center;
+        }
+
+        .glass-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
+            opacity: 0.5;
+        }
+
+        .about-label {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--accent-cyan);
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            margin-bottom: 2vh;
+            display: block;
+        }
+
+        .about-text {
+            font-size: clamp(16px, 1.8vw, 20px);
+            line-height: 1.7;
+            color: var(--text-main);
+        }
+
+        /* === REGRESSION VISUAL === */
+        .regression-visual {
+            aspect-ratio: 1/1;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle at center, rgba(0, 229, 255, 0.03) 0%, transparent 70%);
+            padding: 8%;
+            transition: transform 0.1s ease-out;
+            cursor: crosshair;
+        }
+
+        .regression-svg {
+            width: 100%;
+            height: 100%;
+            overflow: visible;
+        }
+
+        .reg-axis {
+            stroke: rgba(255, 255, 255, 0.2);
+            stroke-width: 1;
+        }
+
+        .reg-trendline {
+            stroke: var(--accent-cyan);
+            stroke-width: 2;
+            stroke-linecap: round;
+            filter: drop-shadow(0 0 6px var(--accent-cyan));
+            stroke-dasharray: 300;
+            stroke-dashoffset: 300;
+        }
+
+        .reg-trendline.animate {
+            animation: drawLine 2s ease-out forwards;
+        }
+
+        .reg-point {
+            fill: rgba(255, 255, 255, 0.5);
+            opacity: 0;
+            r: 2.5;
+        }
+
+        .reg-point.visible {
+            animation: pointAppear 0.4s ease-out forwards;
+        }
+
+        .reg-point.proximity-glow {
+            fill: var(--accent-blue);
+            filter: drop-shadow(0 0 8px var(--accent-blue));
+            transition: r 0.15s ease-out, fill 0.15s ease-out, filter 0.15s ease-out;
+        }
+
+        .reg-residual {
+            stroke: rgba(255, 42, 109, 0.3);
+            stroke-width: 1;
+            stroke-dasharray: 2 2;
+            opacity: 0;
+        }
+
+        .reg-residual.visible {
+            animation: fadeIn 0.6s ease-out forwards;
+        }
+
+        .reg-residual.proximity-glow {
+            stroke: rgba(255, 42, 109, 0.8);
+            stroke-width: 1.5;
+            transition: stroke 0.15s ease-out, stroke-width 0.15s ease-out;
+        }
+
+        /* === ANIMATIONS === */
+        @keyframes drawLine {
+            to { stroke-dashoffset: 0; }
+        }
+
+        @keyframes pointAppear {
+            from {
+                opacity: 0;
+                transform: scale(0);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* === MISC === */
+        .divider {
+            width: 40%;
+            height: 2px;
+            background-image: radial-gradient(circle, var(--accent-cyan) 1px, transparent 1px);
+            background-size: 12px 2px;
+            opacity: 0.3;
+            mask-image: linear-gradient(to right, transparent, black 20%, black 80%, transparent);
+        }
+
+        .footer {
+            padding: 30px 4vw;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: var(--font-mono);
+            font-size: 12px;
+            color: var(--text-muted);
+            letter-spacing: 0.05em;
+            position: relative;
+            z-index: 1;
+        }
+
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* === REDUCED MOTION === */
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+                scroll-behavior: auto !important;
+            }
+
+            .motto-sub,
+            .hero-actions,
+            .stat-item,
+            .reveal {
+                opacity: 1 !important;
+                transform: none !important;
+                visibility: visible !important;
+                animation: none !important;
+            }
+
+            .typewriter-cursor,
+            .live-dot {
+                animation: none !important;
+                opacity: 1 !important;
+            }
+
+            .ripple-wave {
+                display: none !important;
+            }
+
+            .reg-point,
+            .reg-residual {
+                opacity: 1 !important;
+                animation: none !important;
+            }
+
+            .reg-trendline {
+                stroke-dashoffset: 0 !important;
+                animation: none !important;
+            }
+
+            .bg-grid {
+                animation: none !important;
+            }
+
+            .btn-primary:hover,
+            .stat-item:hover {
+                transform: none !important;
+            }
+        }
+
+        /* === RESPONSIVE === */
+        @media (max-width: 768px) {
+            .glass-card {
+                grid-template-columns: 1fr;
+            }
+
+            .regression-visual {
+                max-height: 300px;
+            }
+
+            .stats-block {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+
+            .hero-actions {
+                flex-direction: column;
+                width: 100%;
+            }
+
+            .btn-primary,
+            .btn-secondary {
+                width: 100%;
+                text-align: center;
+            }
+
+            .fixed-panel {
+                padding: 0 6vw;
+            }
+
+            .site-name {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="gravityGrid"></canvas>
+
+    <header class="fixed-panel">
+        <a href="#" class="panel-left">
+            <svg class="logo-svg" viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg">
+                <path class="logo-path" d="M5,55 C20,55 35,50 42,30 C45,20 48,5 50,5 C52,5 55,20 58,30 C65,50 80,55 95,55" />
+                <circle class="dot-red" cx="18" cy="53" r="3.5" />
+                <circle class="dot-blue" cx="82" cy="53" r="3.5" />
+            </svg>
+            <span class="site-name">SparsePoint</span>
+        </a>
+        <nav class="nav-buttons">
+            <a href="#" class="btn btn-login">Войти</a>
+            <a href="#" class="btn btn-register">Регистрация</a>
+        </nav>
+    </header>
+
+    <main class="content">
+        <section class="hero-block">
+            <h1 class="motto-zone">
+                <span id="typewriter"></span>
+                <span class="typewriter-cursor"></span>
+            </h1>
+            <p class="motto-sub">
+                Платформа для практики машинного обучения в формате алгоритмических челленджей. 
+                Решай задачи, оптимизируй модели, прокачивай интуицию данных.
+            </p>
+            <div class="hero-actions">
+                <button class="btn-primary">Начать решать</button>
+                <a href="#about" class="btn-secondary">Как это работает</a>
+            </div>
+        </section>
+
+        <div class="divider"></div>
+
+        <section class="stats-block" id="statsBlock">
+            <div class="stat-item">
+                <span class="stat-value"><span class="live-dot"></span>1,247</span>
+                <span class="stat-label">Сейчас решают</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value">3,842</span>
+                <span class="stat-label">Всего задач</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value">2.1M</span>
+                <span class="stat-label">Отправлено решений</span>
+            </div>
+        </section>
+
+        <div class="divider"></div>
+
+        <section id="about" class="glass-card reveal">
+            <div>
+                <span class="about-label">// Концепция</span>
+                <p class="about-text">
+                    SparsePoint — платформа для отработки навыков машинного обучения через практику. 
+                    Вместо сухой теории ты работаешь с реальными датасетами и метриками качества. 
+                    Каждая задача — полное микро-исследование: от разведочного анализа и генерации признаков 
+                    до обучения модели и валидации результата.
+                    <br><br>
+                    Автоматическая проверка на скрытых тестовых выборках гарантирует, что твои решения 
+                    обобщаются, а не переобучаются.
+                </p>
+            </div>
+            <div class="regression-visual" id="regressionContainer">
+                <svg class="regression-svg" id="regressionSvg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                    <line class="reg-axis" x1="10" y1="190" x2="190" y2="190" />
+                    <line class="reg-axis" x1="10" y1="190" x2="10" y2="10" />
+                    <g id="residualsGroup"></g>
+                    <line class="reg-trendline" id="trendline" x1="15" y1="175" x2="185" y2="20" />
+                    <g id="pointsGroup"></g>
+                </svg>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">© 2026 SparsePoint. All rights reserved.</footer>
+
+    <script>
+        // === CONFIGURATION ===
+        const CONFIG = {
+            grid: {
+                spacing: 50,
+                gravityRadius: 250,
+                maxDisplacement: 25,
+                springStiffness: 0.08,
+                damping: 0.85
+            },
+            typewriter: {
+                phrases: ['ML Tasks.', 'Real Skills.', 'SparsePoint.'],
+                typeSpeed: 80,
+                deleteSpeed: 40,
+                pauseDuration: 2000,
+                pauseBeforeNext: 400
+            },
+            regression: {
+                numPoints: 45,
+                trendStartY: 175,
+                trendEndY: 20,
+                xMin: 18,
+                xMax: 182,
+                proximityRadius: 35,
+                noise: 30
+            }
+        };
+
+        // === UTILITY FUNCTIONS ===
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        function createSVGElement(tag, attributes = {}) {
+            const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+            Object.entries(attributes).forEach(([key, value]) => {
+                el.setAttribute(key, value);
+            });
+            return el;
+        }
+
+        function calculateDistance(x1, y1, x2, y2) {
+            return Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+        }
+
+        // === RIPPLE EFFECT ===
+        function createRipple(e) {
+            if (prefersReducedMotion) return;
+
+            const el = e.currentTarget;
+            el.querySelectorAll('.ripple-wave').forEach(r => r.remove());
+
+            const rect = el.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const size = Math.max(rect.width, rect.height) * 2;
+
+            const ripple = document.createElement('span');
+            ripple.classList.add('ripple-wave');
+            ripple.style.width = ripple.style.height = `${size}px`;
+            ripple.style.left = `${x - size / 2}px`;
+            ripple.style.top = `${y - size / 2}px`;
+
+            const rippleColors = {
+                'btn-primary': 'rgba(255, 255, 255, 0.35)',
+                'btn-register': 'rgba(0, 229, 255, 0.25)',
+                'stat-item': 'rgba(0, 229, 255, 0.12)',
+                default: 'rgba(255, 255, 255, 0.15)'
+            };
+
+            const colorKey = Object.keys(rippleColors).find(key => el.classList.contains(key)) || 'default';
+            ripple.style.background = rippleColors[colorKey];
+
+            el.appendChild(ripple);
+            ripple.addEventListener('animationend', () => ripple.remove());
+        }
+
+        document.querySelectorAll('.btn, .btn-primary, .btn-secondary, .stat-item')
+            .forEach(el => el.addEventListener('mousedown', createRipple));
+
+        // === GRAVITY GRID ===
+        const gridCanvas = document.getElementById('gravityGrid');
+        const gridCtx = gridCanvas.getContext('2d');
+        let gridPoints = [];
+        const mouse = { x: -9999, y: -9999 };
+
+        function initializeGrid() {
+            const { width, height } = { width: window.innerWidth, height: window.innerHeight };
+            gridCanvas.width = width;
+            gridCanvas.height = height;
+            gridPoints = [];
+
+            const cols = Math.ceil(width / CONFIG.grid.spacing) + 2;
+            const rows = Math.ceil(height / CONFIG.grid.spacing) + 2;
+
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    const x = c * CONFIG.grid.spacing;
+                    const y = r * CONFIG.grid.spacing;
+                    gridPoints.push({ ox: x, oy: y, x, y, vx: 0, vy: 0 });
+                }
+            }
+
+            if (prefersReducedMotion) {
+                drawStaticGrid();
+            }
+        }
+
+        function drawStaticGrid() {
+            const { width, height } = { width: gridCanvas.width, height: gridCanvas.height };
+            gridCtx.clearRect(0, 0, width, height);
+
+            const cols = Math.ceil(width / CONFIG.grid.spacing) + 2;
+            const rows = Math.ceil(height / CONFIG.grid.spacing) + 2;
+
+            gridCtx.lineWidth = 1;
+            gridCtx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+
+            // Draw horizontal lines
+            for (let r = 0; r < rows; r++) {
+                gridCtx.beginPath();
+                for (let c = 0; c < cols; c++) {
+                    const x = c * CONFIG.grid.spacing;
+                    const y = r * CONFIG.grid.spacing;
+                    c === 0 ? gridCtx.moveTo(x, y) : gridCtx.lineTo(x, y);
+                }
+                gridCtx.stroke();
+            }
+
+            // Draw vertical lines
+            for (let c = 0; c < cols; c++) {
+                gridCtx.beginPath();
+                for (let r = 0; r < rows; r++) {
+                    const x = c * CONFIG.grid.spacing;
+                    const y = r * CONFIG.grid.spacing;
+                    r === 0 ? gridCtx.moveTo(x, y) : gridCtx.lineTo(x, y);
+                }
+                gridCtx.stroke();
+            }
+        }
+
+        function animateGrid() {
+            if (prefersReducedMotion) return;
+
+            gridCtx.clearRect(0, 0, gridCanvas.width, gridCanvas.height);
+
+            const cols = Math.ceil(gridCanvas.width / CONFIG.grid.spacing) + 2;
+            const rows = Math.ceil(gridCanvas.height / CONFIG.grid.spacing) + 2;
+            const radiusSq = CONFIG.grid.gravityRadius ** 2;
+
+            // Update point positions
+            gridPoints.forEach(point => {
+                const dx = mouse.x - point.ox;
+                const dy = mouse.y - point.oy;
+                const distSq = dx * dx + dy * dy;
+
+                let targetX = point.ox;
+                let targetY = point.oy;
+
+                if (distSq < radiusSq && distSq > 1) {
+                    const dist = Math.sqrt(distSq);
+                    const force = 1 - dist / CONFIG.grid.gravityRadius;
+                    targetX = point.ox + (dx / dist) * force * CONFIG.grid.maxDisplacement;
+                    targetY = point.oy + (dy / dist) * force * CONFIG.grid.maxDisplacement;
+                }
+
+                const ax = (targetX - point.x) * CONFIG.grid.springStiffness;
+                const ay = (targetY - point.y) * CONFIG.grid.springStiffness;
+
+                point.vx = (point.vx + ax) * CONFIG.grid.damping;
+                point.vy = (point.vy + ay) * CONFIG.grid.damping;
+                point.x += point.vx;
+                point.y += point.vy;
+            });
+
+            // Draw grid lines
+            gridCtx.lineWidth = 1;
+
+            for (let r = 0; r < rows; r++) {
+                gridCtx.beginPath();
+                for (let c = 0; c < cols; c++) {
+                    const point = gridPoints[r * cols + c];
+                    c === 0 ? gridCtx.moveTo(point.x, point.y) : gridCtx.lineTo(point.x, point.y);
+                }
+
+                const midPoint = gridPoints[r * cols + Math.floor(cols / 2)];
+                const displacement = calculateDistance(midPoint.x, midPoint.y, midPoint.ox, midPoint.oy);
+                const alpha = 0.04 + (displacement / CONFIG.grid.maxDisplacement) * 0.1;
+
+                gridCtx.strokeStyle = displacement > 2 
+                    ? `rgba(0, 229, 255, ${Math.min(alpha, 0.15)})`
+                    : `rgba(255, 255, 255, ${alpha})`;
+
+                gridCtx.stroke();
+            }
+
+            for (let c = 0; c < cols; c++) {
+                gridCtx.beginPath();
+                for (let r = 0; r < rows; r++) {
+                    const point = gridPoints[r * cols + c];
+                    r === 0 ? gridCtx.moveTo(point.x, point.y) : gridCtx.lineTo(point.x, point.y);
+                }
+
+                const midPoint = gridPoints[Math.floor(rows / 2) * cols + c];
+                const displacement = calculateDistance(midPoint.x, midPoint.y, midPoint.ox, midPoint.oy);
+                const alpha = 0.04 + (displacement / CONFIG.grid.maxDisplacement) * 0.1;
+
+                gridCtx.strokeStyle = displacement > 2 
+                    ? `rgba(0, 229, 255, ${Math.min(alpha, 0.15)})`
+                    : `rgba(255, 255, 255, ${alpha})`;
+
+                gridCtx.stroke();
+            }
+
+            // Draw interaction points
+            gridPoints.forEach(point => {
+                const displacement = calculateDistance(point.x, point.y, point.ox, point.oy);
+                if (displacement > 2) {
+                    const intensity = displacement / CONFIG.grid.maxDisplacement;
+                    gridCtx.beginPath();
+                    gridCtx.arc(point.x, point.y, 1 + intensity * 2, 0, Math.PI * 2);
+                    gridCtx.fillStyle = `rgba(0, 229, 255, ${intensity * 0.4})`;
+                    gridCtx.fill();
+                }
+            });
+
+            requestAnimationFrame(animateGrid);
+        }
+
+        if (!prefersReducedMotion) {
+            document.addEventListener('mousemove', e => {
+                mouse.x = e.clientX;
+                mouse.y = e.clientY;
+            });
+            document.addEventListener('mouseleave', () => {
+                mouse.x = -9999;
+                mouse.y = -9999;
+            });
+        }
+
+        window.addEventListener('resize', () => {
+            initializeGrid();
+            if (prefersReducedMotion) drawStaticGrid();
+        });
+
+        // === TYPEWRITER EFFECT ===
+        const typewriterElement = document.getElementById('typewriter');
+
+        function initializeTypewriter() {
+            if (prefersReducedMotion) {
+                typewriterElement.textContent = CONFIG.typewriter.phrases[0];
+                return;
+            }
+
+            let phraseIndex = 0;
+            let charIndex = 0;
+            let isDeleting = false;
+
+            function typeNext() {
+                const currentPhrase = CONFIG.typewriter.phrases[phraseIndex];
+
+                if (!isDeleting) {
+                    typewriterElement.textContent = currentPhrase.substring(0, charIndex + 1);
+                    charIndex++;
+
+                    if (charIndex === currentPhrase.length) {
+                        setTimeout(() => {
+                            isDeleting = true;
+                            requestAnimationFrame(typeNext);
+                        }, CONFIG.typewriter.pauseDuration);
+                        return;
+                    }
+
+                    setTimeout(typeNext, CONFIG.typewriter.typeSpeed + Math.random() * 40);
+                } else {
+                    typewriterElement.textContent = currentPhrase.substring(0, charIndex - 1);
+                    charIndex--;
+
+                    if (charIndex === 0) {
+                        isDeleting = false;
+                        phraseIndex = (phraseIndex + 1) % CONFIG.typewriter.phrases.length;
+                        setTimeout(typeNext, CONFIG.typewriter.pauseBeforeNext);
+                        return;
+                    }
+
+                    setTimeout(typeNext, CONFIG.typewriter.deleteSpeed);
+                }
+            }
+
+            typeNext();
+        }
+
+        // === STATS ANIMATION ===
+        function showStats() {
+            const stats = document.querySelectorAll('.stat-item');
+
+            stats.forEach((stat, index) => {
+                if (prefersReducedMotion) {
+                    stat.classList.add('instant-visible');
+                } else {
+                    setTimeout(() => {
+                        void stat.offsetHeight;
+                        stat.classList.add('instant-visible');
+                    }, index * 60);
+                }
+            });
+        }
+
+        // === REGRESSION CHART ===
+        function initializeRegressionChart() {
+            const pointsGroup = document.getElementById('pointsGroup');
+            const residualsGroup = document.getElementById('residualsGroup');
+            const svgElement = document.getElementById('regressionSvg');
+            const container = document.getElementById('regressionContainer');
+
+            // Generate random points
+            const pointsData = [];
+            for (let i = 0; i < CONFIG.regression.numPoints; i++) {
+                const x = CONFIG.regression.xMin + Math.random() * (CONFIG.regression.xMax - CONFIG.regression.xMin);
+                const t = (x - CONFIG.regression.xMin) / (CONFIG.regression.xMax - CONFIG.regression.xMin);
+                const trendY = CONFIG.regression.trendStartY + t * (CONFIG.regression.trendEndY - CONFIG.regression.trendStartY);
+                const noise = (Math.random() + Math.random() + Math.random() - 1.5) * CONFIG.regression.noise;
+                const y = Math.max(15, Math.min(185, trendY + noise));
+
+                pointsData.push({ x, y, trendY });
+            }
+
+            // Create residual lines
+            const residualElements = pointsData.map((point, index) => {
+                const residual = createSVGElement('line', {
+                    class: 'reg-residual',
+                    x1: point.x,
+                    y1: point.y,
+                    x2: point.x,
+                    y2: point.trendY
+                });
+
+                if (!prefersReducedMotion) {
+                    residual.style.animationDelay = `${1.5 + index * 0.03}s`;
+                }
+
+                residualsGroup.appendChild(residual);
+                return { element: residual, x: point.x, y: point.y };
+            });
+
+            // Create data points
+            const pointElements = pointsData.map((point, index) => {
+                const circle = createSVGElement('circle', {
+                    class: 'reg-point',
+                    cx: point.x,
+                    cy: point.y,
+                    r: 2.5
+                });
+
+                if (!prefersReducedMotion) {
+                    circle.style.animationDelay = `${0.8 + index * 0.04}s`;
+                }
+
+                pointsGroup.appendChild(circle);
+                return { element: circle, x: point.x, y: point.y };
+            });
+
+            // Proximity glow effect
+            let chartAnimationFrame = null;
+
+            container.addEventListener('mousemove', event => {
+                if (chartAnimationFrame) return;
+
+                chartAnimationFrame = requestAnimationFrame(() => {
+                    const rect = svgElement.getBoundingClientRect();
+                    const scaleX = 200 / rect.width;
+                    const scaleY = 200 / rect.height;
+                    const svgX = (event.clientX - rect.left) * scaleX;
+                    const svgY = (event.clientY - rect.top) * scaleY;
+                    const radiusSq = CONFIG.regression.proximityRadius ** 2;
+
+                    pointElements.forEach(point => {
+                        const distance = calculateDistance(point.x, point.y, svgX, svgY);
+
+                        if (distance < CONFIG.regression.proximityRadius) {
+                            if (!point.element.classList.contains('proximity-glow')) {
+                                point.element.classList.add('proximity-glow');
+                                point.element.setAttribute('r', '5');
+                            }
+                        } else if (point.element.classList.contains('proximity-glow')) {
+                            point.element.classList.remove('proximity-glow');
+                            point.element.setAttribute('r', '2.5');
+                        }
+                    });
+
+                    residualElements.forEach(residual => {
+                        const distance = calculateDistance(residual.x, residual.y, svgX, svgY);
+
+                        if (distance < CONFIG.regression.proximityRadius) {
+                            residual.element.classList.add('proximity-glow');
+                        } else {
+                            residual.element.classList.remove('proximity-glow');
+                        }
+                    });
+
+                    chartAnimationFrame = null;
+                });
+            });
+
+            container.addEventListener('mouseleave', () => {
+                if (chartAnimationFrame) {
+                    cancelAnimationFrame(chartAnimationFrame);
+                    chartAnimationFrame = null;
+                }
+
+                pointElements.forEach(point => {
+                    point.element.classList.remove('proximity-glow');
+                    point.element.setAttribute('r', '2.5');
+                });
+
+                residualElements.forEach(residual => {
+                    residual.element.classList.remove('proximity-glow');
+                });
+            });
+        }
+
+        // === SCROLL REVEAL ===
+        function initializeScrollReveal() {
+            const observer = new IntersectionObserver(entries => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+
+                        if (entry.target.querySelector('.regression-svg') && !prefersReducedMotion) {
+                            document.getElementById('trendline').classList.add('animate');
+                            document.querySelectorAll('.reg-point').forEach(point => point.classList.add('visible'));
+                            document.querySelectorAll('.reg-residual').forEach(residual => residual.classList.add('visible'));
+                        }
+
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.15 });
+
+            document.querySelectorAll('.reveal').forEach(element => {
+                observer.observe(element);
+            });
+        }
+
+        // === INITIALIZATION ===
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeGrid();
+            if (!prefersReducedMotion) {
+                animateGrid();
+            }
+
+            initializeTypewriter();
+
+            // Stats observer
+            const statsObserver = new IntersectionObserver(entries => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        showStats();
+                        statsObserver.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.05, rootMargin: '0px 0px -20px 0px' });
+
+            statsObserver.observe(document.getElementById('statsBlock'));
+
+            if (!prefersReducedMotion) {
+                setTimeout(() => {
+                    const items = document.querySelectorAll('.stat-item:not(.instant-visible)');
+                    if (items.length > 0) showStats();
+                }, 1500);
+            } else {
+                showStats();
+            }
+
+            initializeRegressionChart();
+            initializeScrollReveal();
+        });
+    </script>
+</body>
+</html>
